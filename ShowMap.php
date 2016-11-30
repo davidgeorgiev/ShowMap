@@ -9,7 +9,10 @@ Version: 0.0.0.1
 add_action('init','show_google_map');
 
 function show_google_map(){
-	$myapikey = '';
+	global $wpdb;
+	$myrows = $wpdb->get_results("SELECT map_point_id ,lat, lng FROM map_points;");
+
+	$myapikey = 'your api key here';
 	echo '
 	<style>
       #map {
@@ -20,16 +23,19 @@ function show_google_map(){
     <h3>My Google Maps Demo</h3>
     <div id="map"></div>
     <script>
-      function initMap() {
-        var uluru = {lat: -25.363, lng: 131.044};
+      function initMap() {';
+      	foreach($myrows as $key => $row) {
+			echo 'var uluru'.$row->map_point_id.' = {lat: '.$row->lat.', lng: '.$row->lng.'};';
+		}
+	echo'
         var map = new google.maps.Map(document.getElementById("map"), {
-          zoom: 4,
-          center: uluru
-        });
-        var marker = new google.maps.Marker({
-          position: uluru,
-          map: map
-        });
+          zoom: 12,
+          center: uluru1
+        });';
+        foreach($myrows as $key => $row) {
+			echo 'var marker = new google.maps.Marker({position: uluru'.$row->map_point_id.',map: map});';
+		}
+	echo'
       }
     </script>
     <script async defer
