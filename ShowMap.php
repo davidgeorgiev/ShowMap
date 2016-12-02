@@ -41,6 +41,7 @@ function search_cities_and_show($maxnum){
 			}
 			$j++;
 		}
+		$j=1;
 		$i++;
 	}
 }
@@ -49,7 +50,7 @@ function show_my_google_map(){
 	global $wpdb;
 	$myrows = $wpdb->get_results("SELECT map_point_id ,lat, lng FROM map_points;");
 
-	$myapikey = 'your google api key';
+	$myapikey = 'your google api key here';
 	echo '
 	<style>
       #map {
