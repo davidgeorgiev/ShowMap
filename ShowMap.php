@@ -6,13 +6,32 @@ Author: David Georgiev
 Version: 1.0
 */
 
-add_action('init','show_google_map');
+//add_action('init','show_my_google_map');
 
-function show_google_map(){
+function search_cities_and_show($maxnum){
+	global $wpdb;
+	$counter = 0;
+	$myrows = $wpdb->get_results("TRUNCATE TABLE map_points;");
+	for($i = 1;$i <= 100; $i++){
+		for($j = 1; $j <= 100; $j++){	
+			$url = 'http://freegeoip.net/xml/'.$i.'.'.$j.'.1.1';
+			$xml = new SimpleXMLElement(file_get_contents($url));
+			if(($xml->Latitude!=0)&&($xml->Longitude!=0)){
+				$counter++;
+				//echo '<div><h1>Point: '.$counter.'</h1>';
+				//echo '<p>'.$xml->Latitude.'</p>';
+				//echo '<p>'.$xml->Longitude.'</p></div>';
+				$myrows = $wpdb->get_results("INSERT INTO map_points (map_point_id ,lat, lng) VALUES(".$counter.",".$xml->Latitude.",".$xml->Longitude.")");
+			}
+		}
+	}
+}
+
+function show_my_google_map(){
 	global $wpdb;
 	$myrows = $wpdb->get_results("SELECT map_point_id ,lat, lng FROM map_points;");
 
-	$myapikey = 'your api key here';
+	$myapikey = 'your google api key here';
 	echo '
 	<style>
       #map {
@@ -20,7 +39,6 @@ function show_google_map(){
         width: 100%;
        }
     </style>
-    <h3>My Google Maps Demo</h3>
     <div id="map"></div>
     <script>
       function initMap() {';
@@ -29,7 +47,7 @@ function show_google_map(){
 		}
 	echo'
         var map = new google.maps.Map(document.getElementById("map"), {
-          zoom: 12,
+          zoom: 7,
           center: uluru1
         });';
         foreach($myrows as $key => $row) {
