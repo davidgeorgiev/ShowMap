@@ -32,12 +32,12 @@ function search_cities_and_show($maxnum){
 			$url = 'http://freegeoip.net/xml/'.$i.'.'.$j.'.1.1';
 			$xml = new SimpleXMLElement(file_get_contents($url));
 			if(($xml->Latitude!=0)&&($xml->Longitude!=0)){
-				$counter++;
 				//echo '<div><h1>Point: '.$counter.'</h1>';
 				//echo '<p>'.$xml->Latitude.'</p>';
 				//echo '<p>'.$xml->Longitude.'</p></div>';
 				$myrows = $wpdb->get_results("INSERT INTO map_points (map_point_id ,lat, lng) VALUES(".$counter.",".$xml->Latitude.",".$xml->Longitude.")");
 				$myrows = $wpdb->get_results("INSERT INTO map_points_last (last_max_counter ,last_i, last_j) VALUES(".$counter.",".$i.",".$j.");");
+				$counter++;
 			}
 			$j++;
 		}
@@ -50,7 +50,7 @@ function show_my_google_map(){
 	global $wpdb;
 	$myrows = $wpdb->get_results("SELECT map_point_id ,lat, lng FROM map_points;");
 
-	$myapikey = 'your google api key here';
+	$myapikey = 'your google api here';
 	echo '
 	<style>
       #map {
