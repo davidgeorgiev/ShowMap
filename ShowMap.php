@@ -10,30 +10,59 @@ Version: 2.0
 
 
 function get_lat_lng_from_nekudo_please($firstdigit,$seconddigit){
+	$country = 0;
+	$latitude = 0;
+	$longitude = 0;
+	$timezone = 0;
+	$city = 0;
+	
 	$server_error = 0;
 	$index = 0;
+	$index2 = 0;
 	$url = 'http://geoip.nekudo.com/api/'.$firstdigit.'.'.$seconddigit.'.1.1';
 	$jsondata = file_get_contents($url);
 	$myarray = (json_decode($jsondata, true));
+	
 	
 	if (is_array($myarray) || is_object($myarray)){
 		foreach($myarray as $key => $row1) {
 			if (is_array($row1) || is_object($row1)){
 				foreach($row1 as $key => $row2) {
 					$index++;
+					if($index == 1){
+						$country = $row2;
+					}
 					if($index == 4){
 						$latitude = $row2;
 					}
 					if($index == 5){
 						$longitude = $row2;
 					}
+					if($index == 6){
+						$timezone = $row2;
+					}
 					//echo '<p>'.$index.' '.$row2.'</p>';
 				}
+			}else{
+				$index2++;
+				if($index2 == 1){
+					$city = $row1;
+				}
+				//echo "<p>".$row1."</p>";
 			}
 		}
 	}
 	if($latitude&&$longitude){
-		return array($latitude,$longitude);
+		if(!$city){
+			$city = "_unknown_";
+		}
+		if(!$country){
+			$country = "_unknown_";
+		}
+		if(!$timezone){
+			$timezone = "_unknown_";
+		}
+		return array($latitude,$longitude,$country,$city,$timezone);
 	}else{
 		return -1;
 	}
@@ -54,7 +83,7 @@ function reset_tables(){
 	global $wpdb;
 	$myrows = $wpdb->get_results("DROP TABLE map_points;");
 	$myrows = $wpdb->get_results("DROP TABLE map_points_last;");
-	$myrows = $wpdb->get_results("CREATE TABLE map_points(map_point_id int,lat float,lng float);");
+	$myrows = $wpdb->get_results("CREATE TABLE map_points(map_point_id int,country_name varchar(64),city_name varchar(64),timezone varchar(64),lat float,lng float);");
 	$myrows = $wpdb->get_results("CREATE TABLE map_points_last(last_max_counter int,last_i int, last_j int);");
 	$myrows = $wpdb->get_results("INSERT INTO map_points_last (last_max_counter ,last_i, last_j) VALUES(1,1,1);");
 }
@@ -75,10 +104,17 @@ function search_cities_and_show($maxnum){
 			if($lat_and_lng!=-1){
 				$lat = $lat_and_lng[0];
 				$lng = $lat_and_lng[1];
+				$country = $lat_and_lng[2];
+				$city = $lat_and_lng[3];
+				$timezone = $lat_and_lng[4];
 				//echo '<div><h1>Point: '.$counter.'</h1>';
+				//echo '<p>'.$country.'</p>';
+				//echo '<p>'.$city.'</p>';
+				//echo '<p>'.$timezone.'</p>';
 				//echo '<p>'.$lat.'</p>';
-				//echo '<p>'.$lng.'</p></div>';
-				$myrows = $wpdb->get_results("INSERT INTO map_points (map_point_id ,lat, lng) VALUES(".$counter.",".$lat.",".$lng.")");
+				//echo '<p>'.$lng.'</p>';
+				//echo '</div>';
+				$myrows = $wpdb->get_results("INSERT INTO map_points (map_point_id,country_name,city_name,timezone,lat,lng) VALUES(".$counter.",\"".$country."\",\"".$city."\",\"".$timezone."\",".$lat.",".$lng.")");
 				$myrows = $wpdb->get_results("INSERT INTO map_points_last (last_max_counter ,last_i, last_j) VALUES(".$counter.",".$i.",".$j.");");
 				$counter++;
 			}
@@ -93,7 +129,55 @@ function ShowErronNoPointsInThisInterval(){
 	echo '<h1>No points found in this interval</h1>';
 }
 
+function ShowDropDownMenu(){
+	global $wpdb;
+	echo '<form role="form" action = index.php method="post">';
+	
+	$mysqlquery = "SELECT DISTINCT country_name FROM map_points;";
+	$myrows = $wpdb->get_results($mysqlquery);
+	echo '<label for="text">country</label>';
+	echo '<select name="country">';
+	echo '<option selected="selected" value="0">nothing</option>';
+		foreach($myrows as $key => $row) {
+			echo '<option value="'.$row->country_name.'">'.$row->country_name.'</option>';
+		}	
+			
+	echo '</select>';
+	
+	$mysqlquery = "SELECT DISTINCT city_name FROM map_points;";
+	$myrows = $wpdb->get_results($mysqlquery);
+	echo '<label for="text">city</label>';
+	echo '<select name="city">';
+	echo '<option selected="selected" value="0">nothing</option>';
+		foreach($myrows as $key => $row) {
+			echo '<option value="'.$row->city_name.'">'.$row->city_name.'</option>';
+		}	
+			
+	echo '</select>';
+	
+	$mysqlquery = "SELECT DISTINCT timezone FROM map_points;";
+	$myrows = $wpdb->get_results($mysqlquery);
+	echo '<label for="text">timezone</label>';
+	echo '<select name="timezone">';
+	echo '<option selected="selected" value="0">nothing</option>';
+		foreach($myrows as $key => $row) {
+			echo '<option value="'.$row->timezone.'">'.$row->timezone.'</option>';
+		}	
+			
+	echo '</select>';
+	
+	echo '<button type="submit">Filter</button></form>';
+}
+
 function show_my_google_map($minid,$maxid){
+	$filters_are_active = 0;
+	$firstid = 0;
+	$ifcountry = "";
+	$ifcity = "";
+	$iftimezone = "";
+	$country = "";
+	$city = "";
+	$timezone = "";
 	if($minid==0){
 		$minid=1;
 	}
@@ -101,47 +185,75 @@ function show_my_google_map($minid,$maxid){
 		$maxid=10000;
 	}
 	global $wpdb;
-	$mysqlquery = "SELECT map_point_id ,lat, lng FROM map_points WHERE map_point_id <= ".$maxid." AND map_point_id >= ".$minid.";";
+	
+	if(isset($_POST['country'])){
+		if($_POST['country']!="0"){
+			$filters_are_active = 1;
+			$ifcountry = " AND country_name = \"".$_POST['country']."\"";
+			$country = " COUNTRY - ".$_POST['country'];
+		}
+	}
+	if(isset($_POST['city'])){
+		if($_POST['city']!="0"){
+			$filters_are_active = 1;
+			$ifcity = " AND city_name = \"".$_POST['city']."\"";
+			$city = " CITY - ".$_POST['city'];
+		}
+	}
+	if(isset($_POST['timezone'])){
+		if($_POST['timezone']!="0"){
+			$filters_are_active = 1;
+			$iftimezone = " AND timezone = \"".$_POST['timezone']."\"";
+			$timezone = " TIMEZONE - ".$_POST['timezone'];
+		}
+	}
+	if($filters_are_active){
+		echo "<h2> Activated filters: ".$country.$city.$timezone."</h2>";
+	}
+	$mysqlquery = "SELECT map_point_id ,lat, lng FROM map_points WHERE map_point_id <= ".$maxid." AND map_point_id >= ".$minid.$ifcountry.$ifcity.$iftimezone.";";
 	$myrows = $wpdb->get_results($mysqlquery);
-
-	$myapikey = 'your api key here';
+	$myapikey = 'your google api here';
+	ShowDropDownMenu();
 	if(empty($myrows)){
 		ShowErronNoPointsInThisInterval();
-	}
-	echo '
-	<style>
-      #map {
-        height: 400px;
-        width: 100%;
-       }
-    </style>
-    <div id="map"></div>
-    <script>
-      function initMap() {';
-      	foreach($myrows as $key => $row) {
-			echo 'var uluru'.$row->map_point_id.' = {lat: '.$row->lat.', lng: '.$row->lng.'};';
-		}
-	echo'
-        var map = new google.maps.Map(document.getElementById("map"), {
-          zoom: 1,
-          center: uluru'.$minid.'
-        });';
-        foreach($myrows as $key => $row) {
-			echo 'var marker = new google.maps.Marker({position: uluru'.$row->map_point_id.',map: map});';
-		}
-	echo'
-      }
-    </script>
-    <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key='.$myapikey.'&callback=initMap">
-    </script>';
+	}else{
+		echo '<style>
+		  #map {
+		    height: 400px;
+		    width: 100%;
+		   }
+		</style>
+		<div id="map"></div>
+		<script>
+		  function initMap() {';
+		  	foreach($myrows as $key => $row) {
+		  		if($firstid == 0){
+		  			$firstid = $row->map_point_id;
+		  		}
+				echo 'var uluru'.$row->map_point_id.' = {lat: '.$row->lat.', lng: '.$row->lng.'};';
+			}
+		echo'
+		    var map = new google.maps.Map(document.getElementById("map"), {
+		      zoom: 1,
+		      center: uluru'.$firstid.'
+		    });';
+		    foreach($myrows as $key => $row) {
+				echo 'var marker = new google.maps.Marker({position: uluru'.$row->map_point_id.',map: map});';
+			}
+		echo'
+		  }
+		</script>
+		<script async defer
+		src="https://maps.googleapis.com/maps/api/js?key='.$myapikey.'&callback=initMap">
+		</script>';
+    }
 }
-function mainGoogleMapDavidsPlugin($reset,$search,$show){
+function mainGoogleMapDavidsPlugin($reset,$search,$show,$maxip){
 	if($reset){
 		reset_tables();
 	}
 	if($search){
-		search_cities_and_show(255);
+		search_cities_and_show($maxip);
 	}
 	if($show){
 		if(isset($_GET['minid'])){
