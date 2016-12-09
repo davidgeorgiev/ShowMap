@@ -6,7 +6,7 @@ Author: David Georgiev
 Version: 3.5
 */
 
-define("GOOGLEAPIKEY", "your google api key here");
+define("GOOGLEAPIKEY", "AIzaSyBHkMICjdgO1ggkuwwtKZTWlSbZSfWXv-M");
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -131,23 +131,11 @@ function ShowErronNoPointsInThisInterval(){
 }
 
 function ShowDropDownMenu(){
-	global $wpdb;
+	
 	echo '<form role="form" action = Simple.php method="post">';
 	
-	$mysqlquery = "SELECT DISTINCT timezone FROM map_points ORDER BY timezone ASC;";
-	$myrows = $wpdb->get_results($mysqlquery);
-	
-	echo '
-	<label for="text">timezones: '.count($myrows).' </label>';
-	echo '<select id="timezone" name="timezone">';
-	echo '<option selected="selected" value="0">Select a timezone</option>';
-		foreach($myrows as $key => $row) {
-			echo '<option value="'.$row->timezone.'">'.$row->timezone.'</option>';
-		}	
-			
-	echo '</select>
-	';
-	
+	echo '<input id="searchtimezone" type="text" name="searchtimezone" placeholder="Search for timezone">';
+	echo '<div id="timezone_div"></div>';
 	echo '
 	<div id="country_div"></div>
 	<div id="city_div"></div>
@@ -172,7 +160,12 @@ function ShowDropDownMenu(){
 	echo '
 	
 	$(document).ready(function(){
-		$("#timezone").change(function(){
+		$("#searchtimezone").on("input",function(){
+			$("#timezone_div").load("/wp-content/plugins/ShowMap/TimeZoneRefreshSearch.php?searchtimezone=" + $("#searchtimezone").val());
+			$("#country_div").load("/wp-content/plugins/ShowMap/Dynamic_Second_field.php?timezone=" + $("#timezone").val());
+			$("#city_div").load("/wp-content/plugins/ShowMap/Dynamic_Third_field.php?timezone=" + $("#timezone").val());
+		});
+		$("#timezone_div").change(function(){
 			$("#country_div").load("/wp-content/plugins/ShowMap/Dynamic_Second_field.php?timezone=" + $("#timezone").val());
 			$("#city_div").load("/wp-content/plugins/ShowMap/Dynamic_Third_field.php?timezone=" + $("#timezone").val());
 		});
