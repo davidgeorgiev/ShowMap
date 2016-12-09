@@ -6,7 +6,7 @@ Author: David Georgiev
 Version: 3.0
 */
 
-define("GOOGLEAPIKEY", "your google api key here");
+define("GOOGLEAPIKEY", "AIzaSyBHkMICjdgO1ggkuwwtKZTWlSbZSfWXv-M");
 
 function get_lat_lng_from_nekudo_please($firstdigit,$seconddigit){
 	$country = 0;
