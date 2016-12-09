@@ -3,10 +3,10 @@
 Plugin Name: ShowMap
 Description: Don't use this plugin because this is my first experiment and I don't know what I'm doing because nobody told me how to make a wordpress plugin. Use it at your own risk. Have a nice day, dear wordpress user!
 Author: David Georgiev
-Version: 3.0
+Version: 3.5
 */
 
-define("GOOGLEAPIKEY", "your google api key here");
+define("GOOGLEAPIKEY", "your google api here");
 
 function get_lat_lng_from_nekudo_please($firstdigit,$seconddigit){
 	$country = 0;
@@ -183,6 +183,7 @@ function ShowDropDownMenu(){
 }
 
 function show_my_google_map($minid,$maxid){
+	global $wpdb;
 	$filters_are_active = 0;
 	$firstid = 0;
 	$ifcountry = "";
@@ -195,9 +196,10 @@ function show_my_google_map($minid,$maxid){
 		$minid=1;
 	}
 	if($maxid==0){
-		$maxid=10000;
+		$mysqlquery = "SELECT * FROM map_points;";
+		$myrows = $wpdb->get_results($mysqlquery);
+		$maxid=count($myrows);
 	}
-	global $wpdb;
 	
 	if(isset($_POST['country'])){
 		if($_POST['country']!="0"){
