@@ -6,7 +6,9 @@ Author: David Georgiev
 Version: 3.5
 */
 
-define("GOOGLEAPIKEY", "your google api here");
+define("GOOGLEAPIKEY", "your google api key here");
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 function get_lat_lng_from_nekudo_please($firstdigit,$seconddigit){
 	$country = 0;
@@ -172,9 +174,10 @@ function ShowDropDownMenu(){
 	$(document).ready(function(){
 		$("#timezone").change(function(){
 			$("#country_div").load("/wp-content/plugins/ShowMap/Dynamic_Second_field.php?timezone=" + $("#timezone").val());
+			$("#city_div").load("/wp-content/plugins/ShowMap/Dynamic_Third_field.php?timezone=" + $("#timezone").val());
 		});
 		$("#country_div").change(function(){
-			$("#city_div").load("/wp-content/plugins/ShowMap/Dynamic_Third_field.php?country=" + $("#country").val());
+			$("#city_div").load("/wp-content/plugins/ShowMap/Dynamic_Third_field.php?timezone=" + $("#timezone").val()+"&country=" + $("#country").val());
 		});
 	});
 	

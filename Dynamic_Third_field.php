@@ -8,13 +8,30 @@ ini_set('display_errors', 1);
 require '../../../wp-load.php';
 
 function LoadThirdChoice(){
-	
 	global $wpdb;
 	$country = "";
-	if($_GET["country"]!="0"){
-		$country = "WHERE country_name = \"".$_GET["country"]."\"";
+	$timezone = "";
+	$whereword = "";
+	$andword = "";
+	$ifneededand = 0;
+	if(isset($_GET["country"])){
+		if($_GET["country"]!="0"){
+			$whereword = " WHERE ";
+			$ifneededand++;
+			$country = "country_name = \"".$_GET["country"]."\"";
+		}
 	}
-	$mysqlquery = "SELECT DISTINCT city_name FROM map_points ".$country." ORDER BY city_name ASC;";
+	if(isset($_GET["timezone"])){
+		if($_GET["timezone"]!="0"){
+			$whereword = " WHERE ";
+			$ifneededand++;
+			$timezone = " timezone = \"".$_GET["timezone"]."\"";
+		}
+	}
+	if($ifneededand == 2){
+		$andword = " AND ";
+	}
+	$mysqlquery = "SELECT DISTINCT city_name FROM map_points ".$whereword.$country.$andword.$timezone." ORDER BY city_name ASC;";
 	//echo $mysqlquery;
 	$myrows = $wpdb->get_results($mysqlquery);
 	echo '<label for="text">cities: '.count($myrows).' </label>';
